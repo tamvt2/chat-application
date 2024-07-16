@@ -1,10 +1,10 @@
 const mysql = require('mysql2');
 
 const connection = mysql.createConnection({
-	host: 'localhost',
-	user: 'root',
-	password: '',
-	database: 'chat-application',
+	host: 'us-cluster-east-01.k8s.cleardb.net',
+	user: 'b47739f0537f27',
+	password: '7c6a3d46',
+	database: 'heroku_ee7b7cf0b5e8ef6',
 });
 
 connection.connect((err) => {
@@ -16,3 +16,4 @@ connection.connect((err) => {
 });
 
 module.exports = connection;
+//b47739f0537f27:7c6a3d46@us-cluster-east-01.k8s.cleardb.net/heroku_ee7b7cf0b5e8ef6?reconnect=true

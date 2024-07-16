@@ -1,16 +1,320 @@
-<div class="mt-4">
-	<div class="row">
-		{{#each courses}}
-		<div class="col-sm-6 col-lg-4">
-			<div class="card">
-				<img src="{{this.image}}" class="card-img-top" alt="{{this.name}}">
-				<div class="card-body">
-					<h5 class="card-title">{{this.name}}</h5>
-					<p class="card-text">{{this.description}}</p>
-					<a href="#" class="btn btn-primary">Mua Khóa học</a>
+<div class="wrapper">
+	<nav class="navbar navbar-expand-lg navbar-light bg-light">
+		<ul class="navbar-nav ml-auto flex-column">
+			{{#if sessionUser}}
+				<li class="nav-item">
+					<img src="{{sessionImage_url}}" class="img-profile rounded-circle" data-id="{{sessionID}}" alt="img">
+				</li>
+				<li class="nav-item">
+					<a class="nav-link" href="/"><i class="fa fa-home"></i></a>
+				</li>
+				<li class="nav-item">
+					<a class="nav-link" href="#" onclick="openMessage()"><i class="fas fa-comment"></i></a>
+				</li>
+				<li class="nav-item dropdown">
+					<a class="nav-link" href="#" id="navbarDropdown" data-bs-toggle="dropdown">
+						<i class="fas fa-cog"></i>
+					</a>
+					<ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+						<li><a class="dropdown-item" href="#" data-toggle="modal" data-target="#profile">
+							<i class="fas fa-user"></i> Thông tin tài khoản
+						</a></li>
+						<li><a class="dropdown-item" href="/logout">
+							<i class="fas fa-sign-out-alt"></i> Đăng xuất
+						</a></li>
+					</ul>
+				</li>
+			{{else}}
+				<li class="nav-item">
+					<a class="nav-link" href="/login"><i class="fas fa-sign-in-alt"></i></a>
+				</li>
+				<li class="nav-item">
+					<a class="nav-link" href="/register"><i class="fas fa-user-plus"></i></a>
+				</li>
+			{{/if}}
+		</ul>
+	</nav>
+	<div class="messages-panel border-start">
+		<div class="header mt-3 justify-content-between ml-4 mr-4">
+			<h1>Messages</h1>
+			<a class="add-new-friend" href="#" data-toggle="modal" data-action="addNewFriend" data-target="#add-friend">
+				<i class="fas fa-plus-circle"></i>
+			</a>
+		</div>
+		<div class="container">
+			<form class="d-flex mt-2" method="get" action="/search">
+				<div class="input-group">
+					<input type="text" class="form-control bg-light small" placeholder="Search for..." aria-label="Search" aria-describedby="basic-addon2" name="search"/>
+					<div class="input-group-append">
+						<button class="btn bg-light border" type="submit">
+							<i class="fas fa-search fa-sm"></i>
+						</button>
+					</div>
 				</div>
+			</form>
+			<div class="row">
+				{{#each results}}
+					<div class="item d-flex mt-3" onclick="showChat({{this.channel_id}})">
+						<img src="{{this.image_url}}" class="rounded-3" alt="">
+						<div class="ml-2 d-flex flex-column justify-content-between flex-grow-1">
+							<div class="d-flex justify-content-between">
+								<h5 class="mb-0">{{this.name}}</h5>
+								<span class="mb-0">time</span>
+							</div>
+							<p class="mb-0"><strong>message</strong></p>
+						</div>
+					</div>
+				{{/each}}
 			</div>
 		</div>
-		{{/each}}
+	</div>
+	<div class="content border-start">
+		<div class="header border-bottom d-flex justify-content-between align-items-center">
+			<div class="d-flex list-user">
+				<img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg" alt="" class="ml-4 rounded-circle">
+				<div class="ml-3">
+					<h5>name</h5>
+					<span><i class="fas fa-circle"></i> Offline</span>
+				</div>
+			</div>
+			<div class="btn">
+				<a class="add-friend mr-4 btn p-0" href="#" data-toggle="modal" data-target="#add-friend" data-channel-id="1" data-action="addFriend">
+					<i class="fas fa-user-plus"></i>
+				</a>
+				<button class="mr-3 btn p-0" onclick="openFile()">
+					<i class="fas fa-ellipsis-v"></i>
+				</button>
+			</div>
+		</div>
+		<div class="chat-body">
+			{{!-- <div class="chat-message received">
+                <img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg" class="message-avatar rounded-circle" alt="avatar">
+                <div class="message-content">
+                    <p class="message-text">Hello, how are you?</p>
+                    <span class="message-time">10:00 AM</span>
+                </div>
+            </div>
+            <div class="chat-message sent">
+                <div class="message-content">
+                    <p class="message-text">I'm good, thanks! How about you?</p>
+                    <span class="message-time">10:02 AM</span>
+                </div>
+                <img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg" class="message-avatar rounded-circle" alt="avatar">
+            </div>
+			<div class="chat-message received">
+                <img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg" class="message-avatar rounded-circle" alt="avatar">
+                <div class="message-content">
+                    <p class="message-text">Hello, how are you?</p>
+                    <span class="message-time">10:00 AM</span>
+                </div>
+            </div>
+			<div class="chat-message received">
+                <img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg" class="message-avatar rounded-circle" alt="avatar">
+                <div class="message-content">
+                    <p class="message-text">Hello, how are you?</p>
+                    <span class="message-time">10:00 AM</span>
+                </div>
+            </div>
+			<div class="chat-message sent">
+                <div class="message-content">
+                    <p class="message-text">I'm good, thanks! How about you?</p>
+                    <span class="message-time">10:02 AM</span>
+                </div>
+                <img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg" class="message-avatar rounded-circle" alt="avatar">
+            </div>
+			<div class="chat-message sent">
+                <div class="message-content">
+                    <p class="message-text">I'm good, thanks! How about you?</p>
+                    <span class="message-time">10:02 AM</span>
+                </div>
+                <img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg" class="message-avatar rounded-circle" alt="avatar">
+            </div>
+			<div class="chat-message sent">
+                <div class="message-content">
+                    <p class="message-text">I'm good, thanks! How about you?</p>
+                    <span class="message-time">10:02 AM</span>
+                </div>
+                <img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg" class="message-avatar rounded-circle" alt="avatar">
+            </div>
+			<div class="chat-message sent">
+                <div class="message-content">
+                    <p class="message-text">I'm good, thanks! How about you?</p>
+                    <span class="message-time">10:02 AM</span>
+                </div>
+                <img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg" class="message-avatar rounded-circle" alt="avatar">
+            </div>
+			<div class="chat-message sent">
+                <div class="message-content file-message">
+                    <div class="file-icon">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                    <div class="file-info">
+                        <p class="file-name">document.pdf</p>
+                        <span class="message-time">10:05 AM</span>
+                    </div>
+                </div>
+                <img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg" class="message-avatar rounded-circle" alt="avatar">
+            </div>
+			<div class="chat-message received">
+				<img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg" class="message-avatar rounded-circle" alt="avatar">
+				<div class="message-content">
+					<!-- Tin nhắn là ảnh -->
+					<a href="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg" target="_blank">
+						<img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg" class="message-image" alt="image">
+					</a>
+				</div>
+			</div>
+			<div class="chat-message sent">
+				<div class="message-content">
+					<!-- Tin nhắn là video -->
+					<a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" target="_blank">
+						<video controls class="message-video">
+							<source src="https://www.youtube.com/watch?v=dQw4w9WgXcQ" type="video/mp4">
+							Your browser does not support the video tag.
+						</video>
+					</a>
+				</div>
+				<img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg" class="message-avatar rounded-circle" alt="avatar">
+			</div> --}}
+		</div>
+		<div class="footer border-top align-items-center d-flex">
+			<a href="" class="ml-4 upload-file"><i class="fas fa-file-upload"></i></a>
+			<div class="input-container d-flex align-items-center border ml-2 mr-4">
+				<input type="text" class="form-control bg-light small send" placeholder="Type a message">
+				<a href="" class="pr-2"><i class="fas fa-location-arrow btnSend"></i></a>
+			</div>
+		</div>
+	</div>
+	<div class="directory border-start">
+		<div class="header d-flex justify-content-between ml-2 mr-2 align-items-center">
+			<h3>Danh sách các file đã gửi</h3>
+			<button class="mr-3 btn p-0" id="btnFile" onclick="cloneFile()">
+				<i class="fas fa-times"></i>
+			</button>
+		</div>
+		<div class="image mt-3 ml-2">
+			<h3>Ảnh đã gửi</h3>
+			<div class="list-image">
+				<a href="">
+					<img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg">
+				</a>
+				<a href="">
+					<img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg">
+				</a>
+				<a href="">
+					<img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg">
+				</a>
+				<a href="">
+					<img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg">
+				</a>
+				<a href="">
+					<img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg">
+				</a>
+				<a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" target="_blank">
+					<video controls class="message-video">
+						<source src="https://www.youtube.com/watch?v=dQw4w9WgXcQ" type="video/mp4">
+					</video>
+				</a>
+				<a href="">
+					<img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg">
+				</a>
+			</div>
+		</div>
+		<div class="file mt-3 ml-2">
+			<h3>File</h3>
+			<ul class="list-group mt-3">
+				<li class="list-group-item">
+					<a href="#" class="file-link">document.pdf</a>
+					<span class="message-time">10:05 AM</span>
+				</li>
+				<li class="list-group-item">
+					<a href="#" class="file-link">File 2</a>
+				</li>
+				<li class="list-group-item">
+					<a href="#" class="file-link">File 3</a>
+				</li>
+				<!-- Thêm các mục khác tương tự cho các file khác -->
+			</ul>
+		</div>
+	</div>
+</div>
+<div class="modal fade" id="add-friend" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+	<div class="modal-dialog" role="document">
+		<div class="modal-content p-3">
+			<div class="modal-header">
+				<h5 class="modal-title" id="exampleModalLabel">Thêm bạn</h5>
+				<button class="close" type="button" data-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">×</span>
+				</button>
+			</div>
+				<!-- Form bắt đầu ở đây -->
+			<div id="errorSearch" class="alert" style="display: none;"></div>
+			<form id="search">
+				<div class="mb-3">
+					<label for="phone" class="form-label">Số điện thoại:</label>
+					<input type="text" id="phoneSearch" class="form-control" placeholder="Nhập số điện thoại">
+				</div>
+				<div id="searchResult">
+
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+					<button type="submit" class="btn btn-primary">Tìm Kiếm</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+
+<div class="modal fade" id="profile" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+	<div class="modal-dialog" role="document">
+		<div class="modal-content p-3">
+			<div class="modal-header">
+				<h5 class="modal-title" id="exampleModalLabel">Thông tin tài khoản</h5>
+				<button class="close" type="button" data-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">×</span>
+				</button>
+			</div>
+			<div class="profileImage">
+				<img src="{{sessionImage_url}}" alt="" class="rounded-circle">
+			</div>
+			<!-- Form bắt đầu ở đây -->
+			<div id="errorAlert" class="alert" style="display: none;"></div>
+			<form id="profileForm">
+				<input type="file" id="fileInput" name="file">
+				<input type="hidden" name="image_url" id="thumb" value="{{sessionImage_url}}">
+				<div class="mb-3">
+					<label for="email" class="form-label">Email:</label>
+					<input type="tel" class="form-control" id="email" name="email" readonly value="{{sessionEmail}}">
+				</div>
+				<div class="mb-3">
+					<label for="name" class="form-label">Name:</label>
+					<input type="tel" class="form-control" id="name" name="name" value="{{sessionUser}}">
+				</div>
+				<div class="mb-3">
+					<label for="phone" class="form-label">Điện thoại:</label>
+					<input type="tel" class="form-control" id="phone" name="phone" value="{{sessionPhone}}">
+				</div>
+				<!-- Thêm các trường form khác nếu cần -->
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+					<button type="submit" class="btn btn-primary">Lưu</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+
+<div class="modal fade" id="list-user" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+	<div class="modal-dialog" role="document">
+		<div class="modal-content p-3">
+			<div class="modal-header">
+				<h5 class="modal-title" id="exampleModalLabel">Thành viên</h5>
+				<button class="close" type="button" data-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">×</span>
+				</button>
+			</div>
+			<div class="list"></div>
+		</div>
 	</div>
 </div>

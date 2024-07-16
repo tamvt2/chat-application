@@ -1,10 +1,24 @@
-$(document).ready(function () {
-	$('#profileForm').on('submit', function (event) {
-		event.preventDefault();
+let actionType;
 
+$(document).ready(function () {
+	$('.profileImage').on('click', (e) => {
+		$('#fileInput').click();
+	});
+	$('.content').hide();
+
+	$('#profileForm').on('submit', (e) => {
+		e.preventDefault();
 		const phoneValue = $('#phone').val().trim();
 
-		if (isNaN(phoneValue)) {
+		const formData = {
+			phone: phoneValue,
+			name: $('#name').val(),
+			image_url: $('#thumb').val(),
+		};
+
+		if (isPhoneNumber(phoneValue)) {
+			$('#errorAlert').removeClass('alert-danger');
+		} else {
 			$('#errorAlert').addClass('alert-danger');
 			$('#errorAlert').removeClass('alert-success');
 			$('#errorAlert')
@@ -16,7 +30,7 @@ $(document).ready(function () {
 		$.ajax({
 			url: '/update',
 			type: 'POST',
-			data: $(this).serialize(),
+			data: formData,
 			dataType: 'json',
 			success: function (data) {
 				if (data.success) {
@@ -34,240 +48,332 @@ $(document).ready(function () {
 			},
 		});
 	});
+
+	$('#search').on('submit', (e) => {
+		e.preventDefault();
+		const phone = $('#phoneSearch').val().trim();
+
+		if (isPhoneNumber(phone)) {
+			$('#errorAlert').removeClass('alert-danger');
+		} else {
+			$('#errorAlert').addClass('alert-danger');
+			$('#errorAlert').removeClass('alert-success');
+			$('#errorAlert')
+				.text('Số điện thoại phải là dạng số. VD: 0123456789')
+				.show();
+			return;
+		}
+
+		$.ajax({
+			url: '/searchUser',
+			type: 'POST',
+			data: { phone },
+			dataType: 'json',
+			success: function (data) {
+				if (data.success) {
+					$('#searchResult').html(`
+						<div class="d-flex align-items-center justify-content-between mb-2">
+							<div class="d-flex align-items-center">
+								<img class="rounded-circle" src="${data.user[0].image_url}" alt="">
+								<p class="ml-3 mb-0">Tên: ${data.user[0].name}</p>
+							</div>
+							<button class="addUserBtn btn btn-primary ml-auto" data-id="${data.user[0].id}" onclick="addUserBtn()">Thêm</button>
+						</div>
+					`);
+				} else {
+					$('#searchResult').html(`<p>${data.message}</p>`);
+				}
+			},
+		});
+	});
+
+	$('#add-friend').on('show.bs.modal', function (event) {
+		$('#searchResult').html('');
+		$('#phoneSearch').val('');
+		const button = $(event.relatedTarget);
+		actionType = button.data('action');
+	});
+
+	$('.send').on('keydown', (e) => {
+		if (e.key === 'Enter') {
+			sendMessage();
+		}
+	});
+
+	$('.btnSend').on('click', (e) => {
+		e.preventDefault();
+		sendMessage();
+	});
+
+	const socket = io();
+
+	// Lắng nghe sự kiện 'message' từ WebSocket server
+	socket.on('message', (message) => {
+		const channel_id = $('.send').data('channel-id');
+		getMessage(channel_id);
+	});
+
+	function sendMessage() {
+		const content = $('.send').val().trim();
+		const channel_id = $('.send').data('channel-id');
+		socket.emit('message', {
+			content: content,
+			channel_id: channel_id,
+		});
+
+		$.ajax({
+			url: '/send-message',
+			type: 'POST',
+			data: { content, channel_id },
+			dataType: 'json',
+			success: function (results) {
+				$('.send').val('');
+				getMessage(channel_id);
+			},
+		});
+	}
 });
 
-$('#upload').change(function () {
+function showChat(channel_id) {
+	$.ajax({
+		url: '/get-user',
+		type: 'GET',
+		data: { channel_id },
+		dataType: 'json',
+		success: function (data) {
+			if (data.length === 1) {
+				$('.send').attr('data-channel-id', channel_id);
+				if (data[0].status === 'online') {
+					$('.list-user').html(`
+						<img src="${data[0].image_url}" alt="" class="ml-4 rounded-circle">
+						<div class="ml-3">
+							<h5>${data[0].name}</h5>
+							<span><i class="fas fa-circle text-green"></i> ${data[0].status}</span>
+						</div>
+					`);
+				} else {
+					$('.list-user').html(`
+						<img src="${data[0].image_url}" alt="" class="ml-4 rounded-circle">
+						<div class="ml-3">
+							<h5>${data[0].name}</h5>
+							<span><i class="fas fa-circle"></i> ${data[0].status}</span>
+						</div>
+					`);
+				}
+				getMessage(channel_id);
+				$('.content').show('block');
+			} else {
+				$('.send').attr('data-channel-id', channel_id);
+				$('.list-user').html(
+					`<a href="#" data-toggle="modal" data-target="#list-user">Danh sách thành viên</a>`
+				);
+				data.forEach((element) => {
+					if (element.status === 'online') {
+						$('.list').append(`
+							<div class="d-flex mt-3">
+								<img src="${element.image_url}" alt="" class="ml-4 rounded-circle">
+								<div class="ml-3">
+									<h5>${element.name}</h5>
+									<span><i class="fas fa-circle text-green"></i> ${element.status}</span>
+								</div>
+							</div>
+						`);
+					} else {
+						$('.list').append(`
+							<div class="d-flex mt-3">
+								<img src="${element.image_url}" alt="" class="ml-4 rounded-circle">
+								<div class="ml-3">
+									<h5>${element.name}</h5>
+									<span><i class="fas fa-circle"></i> ${element.status}</span>
+								</div>
+							</div>
+						`);
+					}
+				});
+			}
+		},
+	});
+}
+
+function getMessage(channel_id) {
+	const id = $('.img-profile').data('id');
+	$.ajax({
+		url: '/get-message',
+		type: 'GET',
+		data: { channel_id },
+		dataType: 'json',
+		success: function (data) {
+			if (data) {
+				$('.chat-body').empty();
+				data.results.forEach((val) => {
+					if (val.user_id == id) {
+						$('.chat-body').append(`
+							<div class="chat-message sent">
+								<div class="message-content">
+									<p class="message-text">${val.content}</p>
+									<span class="message-time">${formatDate(val.created_at)}</span>
+								</div>
+								<img src="${val.image_url}" class="message-avatar rounded-circle" alt="avatar">
+							</div>
+						`);
+					} else {
+						$('.chat-body').append(`
+							<div class="chat-message received">
+								<img src="${val.image_url}" class="message-avatar rounded-circle" alt="avatar">
+								<div class="message-content">
+									<p class="message-text">${val.content}</p>
+									<span class="message-time">${formatDate(val.created_at)}</span>
+								</div>
+							</div>
+						`);
+					}
+				});
+				scrollToBottom();
+			}
+		},
+	});
+}
+
+function openMessage() {
+	let windowWidth = $(window).width();
+	if (windowWidth > 1250) {
+		$('.content').css('width', `calc(${windowWidth} - 420px)`);
+		$('.messages-panel').css('width', `350px`);
+		$('.content').show();
+		$('.messages-panel').show();
+		$('.directory').hide();
+	} else if (windowWidth <= 1250 && windowWidth > 960) {
+		$('.content').css('width', `calc(${windowWidth} - 420px)`);
+		$('.messages-panel').css('width', `350px`);
+		$('.content').show();
+		$('.messages-panel').show();
+		$('.directory').hide();
+	} else if (windowWidth <= 960 && windowWidth > 700) {
+		$('.content').css('width', `calc(${windowWidth} - 420px)`);
+		$('.messages-panel').css('width', `350px`);
+		$('.content').show();
+		$('.messages-panel').show();
+		$('.directory').hide();
+	} else if (windowWidth < 700) {
+		$('.messages-panel').show();
+		$('.content').hide();
+		$('.directory').hide();
+	}
+}
+
+function addUserBtn() {
+	const id = $('.addUserBtn').data('id');
+	if (actionType === 'addNewFriend') {
+		addNewFriend(id);
+	} else if (actionType === 'addFriend') {
+		addFriend(id);
+	}
+}
+
+function addNewFriend(id) {
+	$.ajax({
+		url: '/add-new-user',
+		type: 'POST',
+		data: { id },
+		dataType: 'json',
+		success: function (data) {
+			console.log(data);
+		},
+	});
+}
+
+function addFriend(id) {
+	const channel_id = $('.add-friend').data('channel-id');
+	$.ajax({
+		url: '/add-user',
+		type: 'POST',
+		data: { id, channel_id },
+		dataType: 'json',
+		success: function (data) {
+			console.log(data);
+		},
+	});
+}
+
+function isPhoneNumber(input) {
+	const phoneRegex = /^0[0-9]{9,10}$/;
+	return phoneRegex.test(input);
+}
+
+function openFile() {
+	let windowWidth = $(window).width();
+	if (windowWidth > 1250) {
+		if ($('.directory').is(':visible')) {
+			$('.messages-panel').css('width', `350px`);
+			$('.content').css('width', `calc(${windowWidth} - 420px)`);
+			$('.directory').toggle('block');
+		} else {
+			$('.messages-panel').css('width', `350px`);
+			$('.content').css('width', `calc(${windowWidth} - 755px)`);
+			$('.directory').toggle('block');
+		}
+	} else if (windowWidth <= 1250 && windowWidth > 960) {
+		if ($('.directory').is(':visible')) {
+			$('.messages-panel').css('width', `350px`);
+			$('.content').css('width', `calc(${windowWidth} - 420px)`);
+			$('.messages-panel').toggle('block');
+			$('.directory').toggle('block');
+		} else {
+			$('.messages-panel').css('width', `350px`);
+			$('.content').css('width', `calc(${windowWidth} - 420px)`);
+			$('.messages-panel').toggle('block');
+			$('.directory').toggle('block');
+		}
+	} else if (windowWidth <= 960 && windowWidth > 700) {
+		if ($('.directory').is(':visible')) {
+			$('.content').css('width', `calc(${windowWidth} - 420px)`);
+			$('.directory').toggle('block');
+		} else {
+			$('.messages-panel').css('width', `350px`);
+			$('.content').css('width', `calc(${windowWidth} - 420px)`);
+			$('.directory').toggle('block');
+		}
+	} else if (windowWidth < 700) {
+		$('.messages-panel').css('width', `350px`);
+		$('.content').toggle('block');
+		$('.directory').toggle('block');
+		$('#btnFile').toggle('block');
+	}
+}
+
+function cloneFile() {
+	$('.directory').toggle('block');
+	$('.content').toggle('block');
+	$('#btnFile').toggle('block');
+}
+
+$('#fileInput').change(function () {
 	const formData = new FormData();
 	formData.append('image', this.files[0]);
 
 	$.ajax({
-		url: '/admin/product/upload-image',
+		url: '/upload-image',
 		type: 'POST',
 		data: formData,
 		processData: false,
 		contentType: false,
 		success: function (results) {
 			if (results.success) {
-				$('#image_show').html(
-					`<a href="${results.imageUrl}" target="_blank">
-						<img src="${results.imageUrl}" width="100px">
-					</a>`
-				);
+				$('.profileImage img').attr('src', results.imageUrl);
 				$('#thumb').val(results.imageUrl);
 			} else {
 				alert(results.message);
 			}
 		},
-		error: function (xhr, status, error) {
-			const errorMessage = xhr.responseJSON
-				? xhr.responseJSON.message
-				: 'Lỗi không xác định';
-			alert(errorMessage);
-		},
 	});
 });
 
-function removeRow(url) {
-	if (confirm('Xóa mà không thể khôi phục. Bạn có chắc ?')) {
-		$.ajax({
-			processData: false,
-			contentType: false,
-			type: 'DELETE',
-			dateType: 'json',
-			url: url,
-			success: function (results) {
-				alert(results.message);
-				if (results.success === true) {
-					location.reload();
-				}
-			},
-		});
-	}
+function formatDate(date) {
+	return moment(date).add(7, 'hours').format('HH:mm:ss DD/MM/YYYY');
 }
 
-function addCart(id) {
-	$.ajax({
-		url: '/addCart',
-		type: 'POST',
-		data: { id: id },
-		success: function (results) {
-			if (results.error === 'Unauthorized') {
-				window.location.href = '/login';
-			} else {
-				if (results.message !== '') {
-					alert(results.message);
-				}
-				$('#cartCount').text(results.cartCount);
-				$('#orderCount').text(results.orderCount);
-			}
-		},
-		error: function (xhr, status, error) {
-			console.error('Lỗi khi gửi dữ liệu:', error);
-			console.log('Phản hồi từ server:', xhr.responseText);
-		},
-	});
-}
-
-function buyCart(id) {
-	$.ajax({
-		url: '/addCart',
-		type: 'POST',
-		data: { id: id },
-		success: function (response) {
-			if (response.error === 'Unauthorized') {
-				window.location.href = '/login';
-			} else {
-				if (response.message !== '') {
-					alert(response.message);
-				} else {
-					$('#cartCount').text(response.cartCount);
-					$('#orderCount').text(response.orderCount);
-					window.location.href = '/cart';
-				}
-			}
-		},
-	});
-}
-
-function loadCartItems(cartItems) {
-	console.log(cartItems);
-	let total = 0;
-	$('#cart-items').empty();
-	if (cartItems.length === 0) {
-		$('#cart-total-price').text(formatCurrency(total));
-		return;
-	}
-	cartItems.forEach((item) => {
-		console.log(item);
-		const itemTotal = item.product.price.$numberDecimal * item.quantity;
-		total += itemTotal;
-		$('#cart-items').append(`
-            <tr class="cart-item">
-                <td>
-					<img src="${item.product.image_url}" alt="${item.product.name}">
-				</td>
-                <td>${item.product.name}</td>
-                <td class="text-danger">${formatCurrency(
-					item.product.price.$numberDecimal
-				)}</td>
-                <td>
-                    <div class="quantity-controls">
-                        <button class="btn btn-sm btn-primary" onclick="updateQuantity('${
-							item._id
-						}', ${item.quantity - 1})">-</button>
-                        <span>${item.quantity}</span>
-                        <button class="btn btn-sm btn-primary" onclick="updateQuantity('${
-							item._id
-						}', ${item.quantity + 1})">+</button>
-                    </div>
-                </td>
-                <td class="text-danger">${formatCurrency(itemTotal)}</td>
-                <td><button class="btn btn-danger" onclick="removeItem('${
-					item._id
-				}')">Xóa</button></td>
-            </tr>
-        `);
-	});
-	$('#cart-total-price').text(formatCurrency(total));
-}
-
-function removeItem(itemId) {
-	$.ajax({
-		processData: false,
-		contentType: false,
-		url: '/deleteCart/' + itemId,
-		type: 'DELETE',
-		success: function (response) {
-			loadCartItems(response.cart_items);
-			$('#cartCount').text(response.cartCount);
-			$('#orderCount').text(response.orderCount);
-		},
-		error: function (error) {
-			console.error('Lỗi khi xóa sản phẩm:', error);
-		},
-	});
-}
-
-function updateQuantity(itemId, newQuantity) {
-	if (newQuantity < 1) return;
-	$.ajax({
-		url: '/updateCart',
-		type: 'post',
-		data: { id: itemId, quantity: newQuantity },
-		success: function (response) {
-			loadCartItems(response.cart_items);
-		},
-	});
-}
-
-function formatCurrency(amount) {
-	return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' đ';
-}
-
-function checkout() {
-	$.ajax({
-		url: '/checkout',
-		type: 'POST',
-		success: function (response) {
-			$('#orderCount').text(response.orderCount);
-			$('#cartCount').text(response.cartCount);
-			loadCartItems(response.cart_items);
-			alert(response.message);
-			displayOrders(response.orders);
-		},
-	});
-}
-
-function displayOrders(orders) {
-	orders.forEach(function (order) {
-		console.log(order);
-		var html = $(`<div class="order d-flex m-3">
-			{{#each this.order_Item}}
-				<img src="{{this.product.image_url}}" alt="" style="width: 200px; height: 200px;">
-			{{/each}}
-			<div class="ml-3">
-				<p><strong>Mã đơn hàng:</strong> {{this._id}}</p>
-				<p><strong>Tổng giá trị:</strong> {{formatCurrency this.total}}</p>
-				<p><strong>Trạng thái:</strong> {{this.status}}</p>
-				<p><strong>Ngày tạo:</strong> {{formatDate this.created_at}}</p>
-
-				<ul>
-					{{#each this.order_Item}}
-					<li>{{this.product.name}} - Số lượng: {{this.quantity}} - Thành tiền:
-						<span class="text-danger">{{formatCurrency this.product.price}}</span>
-					</li>
-					{{/each}}
-				</ul>
-			</div>
-		</div>`);
-
-		// $('#orders-list').append(html);
-	});
-}
-
-function ratingFormSubmit(e, orderId) {
-	e.preventDefault();
-	const formData = {
-		rating: $(`#rating-${orderId} input[name="rating"]:checked`).val(),
-		comment: $('#comment-' + orderId).val(),
-		product_id: $('.productId-' + orderId).val(),
-	};
-	console.log(formData);
-
-	$.ajax({
-		url: '/rating',
-		type: 'POST',
-		data: formData,
-		success: function (response) {
-			if (response.success) {
-				alert('Đánh giá thành công.');
-			}
-		},
-		error: function (error) {
-			console.error(
-				'Đã xảy ra lỗi khi gửi đánh giá và bình luận: ',
-				error
-			);
-		},
-	});
+function scrollToBottom() {
+	var chatBox = $('.chat-body');
+	var scrollHeight = chatBox.prop('scrollHeight');
+	chatBox.scrollTop(scrollHeight);
 }

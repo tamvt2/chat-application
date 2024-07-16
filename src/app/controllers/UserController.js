@@ -59,19 +59,103 @@ class UserController {
 		const { email, password } = req.body;
 		User.getByEmail(email, (err, result) => {
 			if (result.length === 0) {
-				return res.status(400).json({ message: 'Email không tồn tại' });
+				req.flash('error', 'Email không tồn tại');
+				return res.redirect('/login');
 			}
 			const user = result[0];
 
 			bcrypt.compare(password, user.password, (err, isMatch) => {
 				if (!isMatch) {
-					return res.send('Sai mật khẩu');
+					req.flash('error', 'Sai mật khẩu');
+					return res.redirect('/login');
 				}
-
-				return res.send('Đăng nhập thành công');
+				const token = jwt.sign({ id: user.id }, 'your_secret_key', {
+					expiresIn: '1h',
+				});
+				req.session.token = token;
+				req.session.userId = user.id;
+				req.session.username = user.name;
+				req.session.email = user.email;
+				req.session.phone = user.phone;
+				req.session.image_url = user.image_url;
+				User.update({ status: 'online' }, user.id, err);
+				res.redirect('/');
 			});
 		});
 	}
+
+	logout(req, res) {
+		const userId = req.session.userId;
+		req.session.destroy((err) => {
+			if (err) {
+				return res.redirect('/');
+			}
+
+			res.clearCookie('connect.sid');
+			User.update({ status: 'offline' }, userId, err);
+			res.redirect('/login');
+		});
+	}
+
+	isPhoneNumber(phone) {
+		const phoneRegex = /^0[0-9]{9,10}$/;
+		return phoneRegex.test(phone);
+	}
+
+	update = async (req, res) => {
+		const userId = req.session.userId;
+		const { phone, name, image_url } = req.body;
+
+		try {
+			if (phone && !this.isPhoneNumber(phone)) {
+				return res.json({
+					success: false,
+					message: 'Số điện thoại không hợp lệ.',
+				});
+			}
+
+			User.update({ phone, name, image_url }, userId, (err, result) => {
+				if (result.length === 0) {
+					return res.json({
+						success: false,
+						message: 'Cập nhật thất bại',
+					});
+				}
+				User.getById(userId, (err, result) => {
+					req.session.username = result[0].name;
+					req.session.phone = result[0].phone;
+					req.session.image_url = result[0].image_url;
+
+					return res.json({
+						success: true,
+						message: 'Cập nhật thành công.',
+					});
+				});
+			});
+		} catch (error) {
+			return res.json({
+				success: false,
+				message: 'Có lỗi xảy ra khi cập nhật.',
+			});
+		}
+	};
+
+	searchUserByPhone = (req, res) => {
+		const phone = req.body;
+
+		User.getByPhone(phone, (err, user) => {
+			if (user.length === 0) {
+				return res.json({
+					success: false,
+					message: 'Không tìm thấy user với số điện thoại này.',
+				});
+			}
+			return res.json({
+				success: true,
+				user,
+			});
+		});
+	};
 }
 
 module.exports = new UserController();

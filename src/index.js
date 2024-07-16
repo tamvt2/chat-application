@@ -3,12 +3,18 @@ const { engine } = require('express-handlebars');
 const morgan = require('morgan');
 const path = require('path');
 const app = express();
+const http = require('http');
+const server = http.createServer(app);
 const port = 3000;
 const route = require('./routes');
 const db = require('./config/db');
 const session = require('express-session');
 const flash = require('connect-flash');
 const MySQLStore = require('express-mysql-session')(session);
+const sessionUserMiddleware = require('./middleware/sessionUser');
+const updateUserActivity = require('./middleware/updateUser');
+const socketIo = require('socket.io');
+const io = socketIo(server);
 
 // Template engine
 app.engine('hbs', engine({ extname: '.hbs' }));
@@ -20,6 +26,13 @@ app.use(
 		extended: true,
 	})
 );
+
+io.on('connection', (socket) => {
+	socket.on('message', (message) => {
+		socket.broadcast.emit('message', message);
+	});
+});
+
 app.use(express.json());
 app.use(flash());
 
@@ -29,16 +42,18 @@ const sessionStore = new MySQLStore({}, db);
 // Cấu hình express-session
 app.use(
 	session({
-		key: 'session_cookie_name',
-		secret: 'your_secret_key',
+		secret: 'your-secret-key',
 		store: sessionStore,
 		resave: false,
-		saveUninitialized: false,
+		saveUninitialized: true,
+		cookie: { secure: false },
 	})
 );
 
+app.use(sessionUserMiddleware);
+app.use(updateUserActivity);
 route(app);
 
-app.listen(port, () =>
+server.listen(port, () =>
 	console.log(`App listening at http://localhost:${port}`)
 );
