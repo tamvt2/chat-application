@@ -42,7 +42,7 @@
 			</a>
 		</div>
 		<div class="container">
-			<form class="d-flex mt-2" method="get" action="/search">
+			<form class="d-flex mt-2">
 				<div class="input-group">
 					<input type="text" class="form-control bg-light small" placeholder="Search for..." aria-label="Search" aria-describedby="basic-addon2" name="search"/>
 					<div class="input-group-append">
@@ -61,7 +61,24 @@
 								<h5 class="mb-0">{{this.name}}</h5>
 								<span class="mb-0">time</span>
 							</div>
-							<p class="mb-0"><strong>message</strong></p>
+							<div class="d-flex justify-content-between">
+								{{#if this.is_read}}
+									<p class="mb-0">{{this.content}}</p>
+								{{else}}
+									<p class="mb-0"><strong>message</strong></p>
+								{{/if}}
+								<a href="" id="dropdown" data-bs-toggle="dropdown" class="pl-1 pr-1 text-gray-600">
+									<i class="fas fa-ellipsis-h"></i>
+								</a>
+								<ul class="dropdown-menu" aria-labelledby="dropdown">
+									<li><a class="dropdown-item" href="#" data-toggle="modal" data-target="#rename">
+										Đổi tên hội thoại
+									</a></li>
+									<li><a class="dropdown-item destroy" href="" data-id="{{this.channel_id}}">
+										Xóa hội thoại
+									</a></li>
+								</ul>
+							</div>
 						</div>
 					</div>
 				{{/each}}
@@ -71,14 +88,16 @@
 	<div class="content border-start">
 		<div class="header border-bottom d-flex justify-content-between align-items-center">
 			<div class="d-flex list-user">
-				<img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg" alt="" class="ml-4 rounded-circle">
-				<div class="ml-3">
-					<h5>name</h5>
-					<span><i class="fas fa-circle"></i> Offline</span>
-				</div>
+				{{#if show}}
+					<img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg" alt="" class="ml-4 rounded-circle">
+					<div class="ml-3">
+						<h5>name</h5>
+						<span><i class="fas fa-circle"></i> Offline</span>
+					</div>
+				{{/if}}
 			</div>
 			<div class="btn">
-				<a class="add-friend mr-4 btn p-0" href="#" data-toggle="modal" data-target="#add-friend" data-channel-id="1" data-action="addFriend">
+				<a class="add-friend mr-4 btn p-0" href="#" data-toggle="modal" data-target="#add-friend" data-action="addFriend">
 					<i class="fas fa-user-plus"></i>
 				</a>
 				<button class="mr-3 btn p-0" onclick="openFile()">
@@ -87,98 +106,62 @@
 			</div>
 		</div>
 		<div class="chat-body">
-			{{!-- <div class="chat-message received">
-                <img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg" class="message-avatar rounded-circle" alt="avatar">
-                <div class="message-content">
-                    <p class="message-text">Hello, how are you?</p>
-                    <span class="message-time">10:00 AM</span>
-                </div>
-            </div>
-            <div class="chat-message sent">
-                <div class="message-content">
-                    <p class="message-text">I'm good, thanks! How about you?</p>
-                    <span class="message-time">10:02 AM</span>
-                </div>
-                <img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg" class="message-avatar rounded-circle" alt="avatar">
-            </div>
-			<div class="chat-message received">
-                <img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg" class="message-avatar rounded-circle" alt="avatar">
-                <div class="message-content">
-                    <p class="message-text">Hello, how are you?</p>
-                    <span class="message-time">10:00 AM</span>
-                </div>
-            </div>
-			<div class="chat-message received">
-                <img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg" class="message-avatar rounded-circle" alt="avatar">
-                <div class="message-content">
-                    <p class="message-text">Hello, how are you?</p>
-                    <span class="message-time">10:00 AM</span>
-                </div>
-            </div>
-			<div class="chat-message sent">
-                <div class="message-content">
-                    <p class="message-text">I'm good, thanks! How about you?</p>
-                    <span class="message-time">10:02 AM</span>
-                </div>
-                <img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg" class="message-avatar rounded-circle" alt="avatar">
-            </div>
-			<div class="chat-message sent">
-                <div class="message-content">
-                    <p class="message-text">I'm good, thanks! How about you?</p>
-                    <span class="message-time">10:02 AM</span>
-                </div>
-                <img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg" class="message-avatar rounded-circle" alt="avatar">
-            </div>
-			<div class="chat-message sent">
-                <div class="message-content">
-                    <p class="message-text">I'm good, thanks! How about you?</p>
-                    <span class="message-time">10:02 AM</span>
-                </div>
-                <img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg" class="message-avatar rounded-circle" alt="avatar">
-            </div>
-			<div class="chat-message sent">
-                <div class="message-content">
-                    <p class="message-text">I'm good, thanks! How about you?</p>
-                    <span class="message-time">10:02 AM</span>
-                </div>
-                <img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg" class="message-avatar rounded-circle" alt="avatar">
-            </div>
-			<div class="chat-message sent">
-                <div class="message-content file-message">
-                    <div class="file-icon">
-                        <i class="fas fa-file-alt"></i>
-                    </div>
-                    <div class="file-info">
-                        <p class="file-name">document.pdf</p>
-                        <span class="message-time">10:05 AM</span>
-                    </div>
-                </div>
-                <img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg" class="message-avatar rounded-circle" alt="avatar">
-            </div>
-			<div class="chat-message received">
-				<img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg" class="message-avatar rounded-circle" alt="avatar">
-				<div class="message-content">
-					<!-- Tin nhắn là ảnh -->
-					<a href="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg" target="_blank">
-						<img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg" class="message-image" alt="image">
-					</a>
+			{{#if show}}
+				<div class="chat-message received">
+					<img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg" class="message-avatar rounded-circle" alt="avatar">
+					<div class="message-content">
+						<p class="message-text">Hello, how are you?</p>
+						<span class="message-time">10:00 AM</span>
+					</div>
 				</div>
-			</div>
-			<div class="chat-message sent">
-				<div class="message-content">
-					<!-- Tin nhắn là video -->
-					<a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" target="_blank">
-						<video controls class="message-video">
-							<source src="https://www.youtube.com/watch?v=dQw4w9WgXcQ" type="video/mp4">
-							Your browser does not support the video tag.
-						</video>
-					</a>
+				<div class="chat-message sent">
+					<div class="message-content">
+						<p class="message-text">I'm good, thanks! How about you?</p>
+						<span class="message-time">10:02 AM</span>
+					</div>
+					<img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg" class="message-avatar rounded-circle" alt="avatar">
 				</div>
-				<img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg" class="message-avatar rounded-circle" alt="avatar">
-			</div> --}}
+				<div class="chat-message sent">
+					<div class="message-content file-message">
+						<div class="file-icon">
+							<i class="fas fa-file-alt"></i>
+						</div>
+						<div class="file-info">
+							<p class="file-name">document.pdf</p>
+							<span class="message-time">10:05 AM</span>
+						</div>
+					</div>
+					<img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg" class="message-avatar rounded-circle" alt="avatar">
+				</div>
+				<div class="chat-message received">
+					<img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg" class="message-avatar rounded-circle" alt="avatar">
+					<div class="message-content">
+						<!-- Tin nhắn là ảnh -->
+						<a href="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg" target="_blank">
+							<img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg" class="message-image" alt="image">
+						</a>
+					</div>
+				</div>
+				<div class="chat-message sent">
+					<div class="message-content">
+						<!-- Tin nhắn là video -->
+						<a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" target="_blank">
+							<video controls class="message-video">
+								<source src="https://www.youtube.com/watch?v=dQw4w9WgXcQ" type="video/mp4">
+								Your browser does not support the video tag.
+							</video>
+						</a>
+					</div>
+					<img src="https://vuongquocanh.com/wp-content/uploads/2018/05/london-eye-800x534.jpg" class="message-avatar rounded-circle" alt="avatar">
+				</div>
+			{{/if}}
 		</div>
 		<div class="footer border-top align-items-center d-flex">
 			<a href="" class="ml-4 upload-file"><i class="fas fa-file-upload"></i></a>
+			<form id="uploadForm" enctype="multipart/form-data">
+				<input type="file" id="upload-file" name="files" class="d-none" multiple>
+				<input type="hidden" name="image_url" id="image_url">
+			</form>
 			<div class="input-container d-flex align-items-center border ml-2 mr-4">
 				<input type="text" class="form-control bg-light small send" placeholder="Type a message">
 				<a href="" class="pr-2"><i class="fas fa-location-arrow btnSend"></i></a>
@@ -258,7 +241,7 @@
 
 				</div>
 				<div class="modal-footer">
-					<button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+					<button type="button" class="btn btn-secondary dismiss" data-dismiss="modal">Hủy</button>
 					<button type="submit" class="btn btn-primary">Tìm Kiếm</button>
 				</div>
 			</form>
@@ -315,6 +298,31 @@
 				</button>
 			</div>
 			<div class="list"></div>
+		</div>
+	</div>
+</div>
+
+<div class="modal fade" id="rename" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+	<div class="modal-dialog" role="document">
+		<div class="modal-content p-3">
+			<div class="modal-header">
+				<h5 class="modal-title" id="exampleModalLabel">Đổi tên hội thoại</h5>
+				<button class="close" type="button" data-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">×</span>
+				</button>
+			</div>
+			<div id="errorAlert" class="alert" style="display: none;"></div>
+			<form id="profileForm">
+				<div class="mb-3">
+					<label for="name" class="form-label">Name:</label>
+					<input type="tel" class="form-control" id="name" name="name">
+				</div>
+				<!-- Thêm các trường form khác nếu cần -->
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+					<button type="submit" class="btn btn-primary">Lưu</button>
+				</div>
+			</form>
 		</div>
 	</div>
 </div>

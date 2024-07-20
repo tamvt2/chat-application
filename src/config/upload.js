@@ -8,16 +8,33 @@ cloudinary.config({
 	api_secret: 'LKOwlz8ZO-xbKmevk73UIw7ohHY',
 });
 
-const storage = new CloudinaryStorage({
+const imageStorage = new CloudinaryStorage({
 	cloudinary,
-	allowedFormats: ['jpg', 'png'],
-	filename: function (req, file, cb) {
-		cb(null, file.fieldname + '-' + Date.now() + file.originalname);
+	params: {
+		folder: 'images',
+		allowed_formats: ['jpg', 'png'],
+		public_id: (req, file) =>
+			file.fieldname + '-' + Date.now() + '-' + file.originalname,
 	},
 });
 
-// Cấu hình file upload
-const upload = multer({ storage });
+const fileStorage = new CloudinaryStorage({
+	cloudinary,
+	params: {
+		folder: 'files',
+		resource_type: 'auto',
+		public_id: (req, file) =>
+			file.fieldname + '-' + Date.now() + '-' + file.originalname,
+	},
+});
 
-module.exports = { upload, cloudinary };
+const uploadImage = multer({ storage: imageStorage });
+const uploadFile = multer({
+	storage: fileStorage,
+	limits: {
+		fileSize: 100 * 1024 * 1024, // 50MB
+	},
+});
+
+module.exports = { uploadImage, uploadFile, cloudinary };
 //CLOUDINARY_URL=cloudinary://<645256847652639>:<LKOwlz8ZO-xbKmevk73UIw7ohHY>@dbs2lqchy

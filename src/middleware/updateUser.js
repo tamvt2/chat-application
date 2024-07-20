@@ -35,7 +35,7 @@ function updateInactiveUsers() {
 }
 
 // Lên lịch để kiểm tra mỗi phút
-schedule.scheduleJob('*/1 * * * *', () => {
+schedule.scheduleJob('*/5 * * * *', () => {
 	updateInactiveUsers();
 });
 

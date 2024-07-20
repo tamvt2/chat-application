@@ -8247,6 +8247,7 @@ body.sidebar-toggled footer.sticky-footer {
   object-fit: cover; }
 
 .message-content {
+  max-width: 320px;
   background-color: #e9ecef;
   padding: 10px;
   border-radius: 5px;
@@ -8257,6 +8258,7 @@ body.sidebar-toggled footer.sticky-footer {
   margin: 0; }
 
 .message-time {
+  display: block;
   font-size: 0.8em;
   color: #6c757d;
   text-align: right;
@@ -8266,19 +8268,27 @@ body.sidebar-toggled footer.sticky-footer {
   justify-content: flex-end; }
 
 .chat-message.sent .message-content {
+  max-width: 320px;
   margin-left: 0;
   margin-right: 10px;
   background-color: #d1e7dd; }
 
-.message-image {
-  max-width: 300px;
+.message-image, .message-video {
+  display: block;
+  max-width: 180px;
   height: auto;
   cursor: pointer; }
 
-.message-video {
-  max-width: 300px;
-  height: auto;
-  cursor: pointer; }
+.file-name {
+  overflow-wrap: break-word; }
+
+.chat-message.received .message-content {
+  max-width: auto;
+  margin-left: 10px;
+  margin-right: 0; }
+
+.chat-message.received .message-content .message-time {
+  float: left; }
 
 .content .footer {
   height: 70px;
@@ -8328,6 +8338,10 @@ body.sidebar-toggled footer.sticky-footer {
 .image .list-image {
   flex-wrap: wrap; }
 
+.list-image a {
+  width: 60px;
+  height: 60px; }
+
 .image .list-image a img, .image .list-image a video {
   width: 60px;
   height: 60px;
@@ -8338,6 +8352,13 @@ body.sidebar-toggled footer.sticky-footer {
   padding: 8px 16px;
   border: none;
   cursor: pointer; }
+
+.list-group-item a {
+  max-width: 200px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  display: inline-block; }
 
 .text-green {
   color: #68D391 !important; }
@@ -8377,3 +8398,13 @@ body.sidebar-toggled footer.sticky-footer {
 
 .list span {
   font-size: 13px; }
+
+#dropdown:hover {
+  background-color: rgba(206, 206, 206, 0.5); }
+
+.message {
+  max-width: 200px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  display: inline-block; }

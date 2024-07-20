@@ -8,7 +8,6 @@ class Notification {
                 user_id BIGINT NOT NULL,
                 channel_id BIGINT NOT NULL,
                 message_id BIGINT NOT NULL,
-				file_path VARCHAR(255) NULL,
 				is_read BOOLEAN DEFAULT false,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 				FOREIGN KEY (user_id) REFERENCES users(id)
@@ -22,6 +21,22 @@ class Notification {
 				ON UPDATE CASCADE
             )
         `);
+	}
+
+	create(userId, channel_id, message_id, callback) {
+		con.query(
+			'INSERT INTO notifications (user_id, channel_id, message_id) VALUES (?, ?, ?)',
+			[userId, channel_id, message_id],
+			callback
+		);
+	}
+
+	update(user_id, channel_id, callback) {
+		con.query(
+			'UPDATE notifications SET is_read = true WHERE user_id = ? AND channel_id = ? AND is_read = false',
+			[user_id, channel_id],
+			callback
+		);
 	}
 }
 

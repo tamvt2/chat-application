@@ -1,6 +1,6 @@
 const userRouter = require('./user');
 const homeRouter = require('./home');
-const { upload } = require('../config/upload');
+const { uploadImage, uploadFile } = require('../config/upload');
 const UploadController = require('../app/controllers/UploadController');
 
 function route(app) {
@@ -8,8 +8,14 @@ function route(app) {
 
 	app.post(
 		'/upload-image',
-		upload.single('image'),
+		uploadImage.single('image'),
 		UploadController.uploadImage
+	);
+
+	app.post(
+		'/upload-file',
+		uploadFile.array('files', 10),
+		UploadController.uploadFile
 	);
 
 	app.use('/', homeRouter);

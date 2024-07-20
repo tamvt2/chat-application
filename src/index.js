@@ -3,8 +3,7 @@ const { engine } = require('express-handlebars');
 const morgan = require('morgan');
 const path = require('path');
 const app = express();
-const http = require('http');
-const server = http.createServer(app);
+const http = require('http').createServer(app);
 const port = 3000;
 const route = require('./routes');
 const db = require('./config/db');
@@ -14,13 +13,16 @@ const MySQLStore = require('express-mysql-session')(session);
 const sessionUserMiddleware = require('./middleware/sessionUser');
 const updateUserActivity = require('./middleware/updateUser');
 const socketIo = require('socket.io');
-const io = socketIo(server);
+const io = socketIo(http);
 
 // Template engine
 app.engine('hbs', engine({ extname: '.hbs' }));
 app.set('view engine', 'hbs');
 app.set('views', path.join(__dirname, 'resources', 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ limit: '100mb', extended: true }));
+
 app.use(
 	express.urlencoded({
 		extended: true,
@@ -30,6 +32,7 @@ app.use(
 io.on('connection', (socket) => {
 	socket.on('message', (message) => {
 		socket.broadcast.emit('message', message);
+		io.emit('new-message', message);
 	});
 });
 
@@ -54,6 +57,6 @@ app.use(sessionUserMiddleware);
 app.use(updateUserActivity);
 route(app);
 
-server.listen(port, () =>
+http.listen(port, () =>
 	console.log(`App listening at http://localhost:${port}`)
 );

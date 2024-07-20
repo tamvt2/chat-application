@@ -1,9 +1,24 @@
 let actionType;
+const imageTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+const videoTypes = ['video/mp4'];
+const audioTypes = ['audio/mpeg'];
+const documentTypes = [
+	'application/msword',
+	'application/pdf',
+	'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+];
 
 $(document).ready(function () {
+	const isLoggedIn = $('.img-profile').data('id');
+	if (isLoggedIn) {
+		loadChannels();
+		setInterval(loadChannels, 20000);
+	}
+
 	$('.profileImage').on('click', (e) => {
 		$('#fileInput').click();
 	});
+
 	$('.content').hide();
 
 	$('#profileForm').on('submit', (e) => {
@@ -113,8 +128,14 @@ $(document).ready(function () {
 		getMessage(channel_id);
 	});
 
+	socket.on('new-message', (message) => {
+		loadChannels();
+	});
+
 	function sendMessage() {
 		const content = $('.send').val().trim();
+		const userId = $('.list-user').data('id');
+		console.log($('.send').val());
 		const channel_id = $('.send').data('channel-id');
 		socket.emit('message', {
 			content: content,
@@ -124,7 +145,7 @@ $(document).ready(function () {
 		$.ajax({
 			url: '/send-message',
 			type: 'POST',
-			data: { content, channel_id },
+			data: { content, channel_id, userId },
 			dataType: 'json',
 			success: function (results) {
 				$('.send').val('');
@@ -132,6 +153,78 @@ $(document).ready(function () {
 			},
 		});
 	}
+
+	$('.destroy').on('click', (e) => {
+		e.preventDefault();
+		const channel_id = $('.destroy').data('id');
+		$.ajax({
+			processData: false,
+			contentType: false,
+			url: '/destroy-message/' + channel_id,
+			type: 'DELETE',
+			data: { channel_id },
+			dataType: 'json',
+			success: function (data) {
+				if (data.success) {
+					location.reload();
+				}
+			},
+		});
+	});
+
+	$('.upload-file').on('click', (e) => {
+		e.preventDefault();
+		$('#upload-file').click();
+	});
+
+	$('#upload-file').on('change', (event) => {
+		const channel_id = $('.send').data('channel-id');
+		const content = $('.send').val().trim();
+		const input = event.target;
+		const formData = new FormData();
+		const files = input.files;
+
+		const maxSize = 100 * 1024 * 1024;
+
+		if (files.length > 10) {
+			alert('Chỉ có thể tải lên 10 tệp 1 lúc');
+			return;
+		}
+
+		// Kiểm tra kích thước tệp
+		for (let i = 0; i < files.length; i++) {
+			if (files[i].size > maxSize) {
+				alert('Tệp quá lớn. Vui lòng chọn tệp nhỏ hơn 100MB.');
+				// Xóa tệp đã chọn
+				input.value = '';
+				return;
+			}
+		}
+
+		if (files.length > 0) {
+			for (let i = 0; i < files.length; i++) {
+				formData.append('files', files[i]);
+			}
+			formData.append('channel_id', channel_id);
+			formData.append('content', content);
+
+			$.ajax({
+				url: '/upload-file',
+				type: 'POST',
+				data: formData,
+				processData: false,
+				contentType: false,
+				success: function (results) {
+					$('.send').val('');
+					if (results.success) {
+						getMessage(channel_id);
+					} else {
+						alert(results.message);
+					}
+				},
+			});
+		}
+	});
 });
 
 function showChat(channel_id) {
@@ -151,6 +244,7 @@ function showChat(channel_id) {
 							<span><i class="fas fa-circle text-green"></i> ${data[0].status}</span>
 						</div>
 					`);
+					$('.list-user').attr('data-id', data[0].id);
 				} else {
 					$('.list-user').html(`
 						<img src="${data[0].image_url}" alt="" class="ml-4 rounded-circle">
@@ -159,14 +253,18 @@ function showChat(channel_id) {
 							<span><i class="fas fa-circle"></i> ${data[0].status}</span>
 						</div>
 					`);
+					$('.list-user').attr('data-id', data[0].id);
 				}
 				getMessage(channel_id);
 				$('.content').show('block');
+
+				loadChannels();
 			} else {
 				$('.send').attr('data-channel-id', channel_id);
 				$('.list-user').html(
 					`<a href="#" data-toggle="modal" data-target="#list-user">Danh sách thành viên</a>`
 				);
+				$('.list-user').attr('data-id', data[0].id);
 				data.forEach((element) => {
 					if (element.status === 'online') {
 						$('.list').append(`
@@ -190,6 +288,10 @@ function showChat(channel_id) {
 						`);
 					}
 				});
+				getMessage(channel_id);
+				$('.content').show('block');
+
+				loadChannels();
 			}
 		},
 	});
@@ -197,38 +299,260 @@ function showChat(channel_id) {
 
 function getMessage(channel_id) {
 	const id = $('.img-profile').data('id');
+
 	$.ajax({
 		url: '/get-message',
 		type: 'GET',
 		data: { channel_id },
 		dataType: 'json',
 		success: function (data) {
-			if (data) {
+			if (data.results) {
+				$('.add-friend').attr('data-channel-id', channel_id);
 				$('.chat-body').empty();
 				data.results.forEach((val) => {
 					if (val.user_id == id) {
-						$('.chat-body').append(`
-							<div class="chat-message sent">
-								<div class="message-content">
-									<p class="message-text">${val.content}</p>
-									<span class="message-time">${formatDate(val.created_at)}</span>
+						if (imageTypes.includes(val.mimetype)) {
+							return $('.chat-body').append(`
+								<div class="chat-message sent">
+									<div class="message-content">
+										<!-- Tin nhắn là video -->
+										<p class="message-text">${val.content}</p>
+										<a href="${val.file_path}" target="_blank">
+											<img src="${val.file_path}" class="message-image" alt="image">
+										</a>
+										<span class="message-time">${formatDate(val.created_at)}</span>
+									</div>
+									<img src="${val.image_url}" class="message-avatar rounded-circle" alt="avatar">
 								</div>
-								<img src="${val.image_url}" class="message-avatar rounded-circle" alt="avatar">
-							</div>
-						`);
+							`);
+						} else if (videoTypes.includes(val.mimetype)) {
+							return $('.chat-body').append(`
+								<div class="chat-message sent">
+									<div class="message-content">
+										<p class="message-text">${val.content}</p>
+										<a href="${val.file_path}">
+											<video controls class="message-video">
+												<source src="${val.file_path}" type="video/mp4">
+												Your browser does not support the video tag.
+											</video>
+										</a>
+										<span class="message-time">${formatDate(val.created_at)}</span>
+									</div>
+									<img src="${val.image_url}" class="message-avatar rounded-circle" alt="avatar">
+								</div>
+							`);
+						} else if (audioTypes.includes(val.mimetype)) {
+							return $('.chat-body').append(`
+								<div class="chat-message sent">
+									<div class="message-content">
+										<p class="message-text">${val.content}</p>
+										<p class="file-name">
+											<audio controls>
+												<source src="${val.file_path}" type="audio/mp3">
+											</audio>
+										</p>
+										<span class="message-time">${formatDate(val.created_at)}</span>
+									</div>
+									<img src="${val.image_url}" class="message-avatar rounded-circle" alt="avatar">
+								</div>
+							`);
+						} else if (documentTypes.includes(val.mimetype)) {
+							return $('.chat-body').append(`
+								<div class="chat-message sent">
+									<div class="message-content">
+										<p class="message-text">${val.content}</p>
+										<a href="${val.file_path}" class="file-name text-gray-600">${val.file_path}</a>
+										<span class="message-time">${formatDate(val.created_at)}</span>
+									</div>
+									<img src="${val.image_url}" class="message-avatar rounded-circle" alt="avatar">
+								</div>
+							`);
+						} else {
+							return $('.chat-body').append(`
+								<div class="chat-message sent">
+									<div class="message-content">
+										<p class="message-text">${val.content}</p>
+										<span class="message-time">${formatDate(val.created_at)}</span>
+									</div>
+									<img src="${val.image_url}" class="message-avatar rounded-circle" alt="avatar">
+								</div>
+							`);
+						}
 					} else {
-						$('.chat-body').append(`
-							<div class="chat-message received">
-								<img src="${val.image_url}" class="message-avatar rounded-circle" alt="avatar">
-								<div class="message-content">
-									<p class="message-text">${val.content}</p>
-									<span class="message-time">${formatDate(val.created_at)}</span>
+						if (imageTypes.includes(val.mimetype)) {
+							return $('.chat-body').append(`
+								<div class="chat-message received">
+									<img src="${val.image_url}" class="message-avatar rounded-circle" alt="avatar">
+									<div class="message-content">
+										<!-- Tin nhắn là video -->
+										<p class="message-text">${val.content}</p>
+										<a href="${val.file_path}" target="_blank">
+											<img src="${val.file_path}" class="message-image" alt="image">
+										</a>
+										<span class="message-time">${formatDate(val.created_at)}</span>
+									</div>
 								</div>
-							</div>
-						`);
+							`);
+						} else if (videoTypes.includes(val.mimetype)) {
+							return $('.chat-body').append(`
+								<div class="chat-message received">
+									<img src="${val.image_url}" class="message-avatar rounded-circle" alt="avatar">
+									<div class="message-content">
+										<p class="message-text">${val.content}</p>
+										<a href="${val.file_path}">
+											<video controls class="message-video">
+												<source src="${val.file_path}" type="video/mp4">
+												Your browser does not support the video tag.
+											</video>
+										</a>
+										<span class="message-time">${formatDate(val.created_at)}</span>
+									</div>
+								</div>
+							`);
+						} else if (audioTypes.includes(val.mimetype)) {
+							return $('.chat-body').append(`
+								<div class="chat-message received">
+									<img src="${val.image_url}" class="message-avatar rounded-circle" alt="avatar">
+									<div class="message-content">
+										<p class="message-text">${val.content}</p>
+										<p class="file-name">
+											<audio controls>
+												<source src="${val.file_path}" type="audio/mp3">
+											</audio>
+										</p>
+										<span class="message-time">${formatDate(val.created_at)}</span>
+									</div>
+								</div>
+							`);
+						} else if (documentTypes.includes(val.mimetype)) {
+							return $('.chat-body').append(`
+								<div class="chat-message received">
+									<img src="${val.image_url}" class="message-avatar rounded-circle" alt="avatar">
+									<div class="message-content">
+										<p class="message-text">${val.content}</p>
+										<a href="${val.file_path}" class="file-name text-gray-600">${val.file_path}</a>
+										<span class="message-time">${formatDate(val.created_at)}</span>
+									</div>
+								</div>
+							`);
+						} else {
+							return $('.chat-body').append(`
+								<div class="chat-message received">
+									<img src="${val.image_url}" class="message-avatar rounded-circle" alt="avatar">
+									<div class="message-content">
+										<p class="message-text">${val.content}</p>
+										<span class="message-time">${formatDate(val.created_at)}</span>
+									</div>
+								</div>
+							`);
+						}
 					}
 				});
 				scrollToBottom();
+				getImage(channel_id);
+				getFile(channel_id);
+			}
+		},
+	});
+}
+
+function loadChannels() {
+	$.ajax({
+		url: '/get-channels',
+		type: 'GET',
+		dataType: 'json',
+		success: function (results) {
+			$('.row').empty();
+			if (results.length > 0) {
+				results.map((val) => {
+					const itemHTML = `
+						<div class="item d-flex mt-3" onclick="showChat(${val.channel_id})">
+							<img src="${val.image_url}" class="rounded-3" alt="">
+							<div class="ml-2 d-flex flex-column justify-content-between flex-grow-1">
+								<div class="d-flex justify-content-between">
+									<h5 class="mb-0">${val.name}</h5>
+									<span class="mb-0">${formatTimeElapsed(val.created_at)}</span>
+								</div>
+								<div class="d-flex justify-content-between">
+									<p class="mb-0 message"></p>
+									<a href="" id="dropdown" data-bs-toggle="dropdown" class="pl-1 pr-1 text-gray-600">
+										<i class="fas fa-ellipsis-h"></i>
+									</a>
+									<ul class="dropdown-menu" aria-labelledby="dropdown">
+										<li><a class="dropdown-item" href="#" data-toggle="modal" data-target="#rename">
+											Đổi tên hội thoại
+										</a></li>
+										<li><a class="dropdown-item destroy" href="" data-id="${val.channel_id}">
+											Xóa hội thoại
+										</a></li>
+									</ul>
+								</div>
+							</div>
+						</div>
+					`;
+					const $item = $(itemHTML);
+					$item
+						.find('p.message')
+						.html(
+							val.is_read
+								? val.content
+								: `<strong>${val.content}</strong>`
+						);
+					$('.row').append($item);
+				});
+			}
+		},
+	});
+}
+
+function getImage(channel_id) {
+	$.ajax({
+		url: '/get-image',
+		type: 'GET',
+		data: { channel_id },
+		dataType: 'json',
+		success: function (data) {
+			$('.list-image').empty();
+			if (data.success) {
+				data.results.map((val) => {
+					if (imageTypes.includes(val.mimetype)) {
+						$('.list-image').append(`
+							<a href="${val.file_path}">
+								<img src="${val.file_path}">
+							</a>
+						`);
+					} else {
+						$('.list-image').append(`
+							<a href="${val.file_path}" target="_blank">
+								<video controls>
+									<source src="${val.file_path}" type="video/mp4">
+								</video>
+							</a>
+						`);
+					}
+				});
+			}
+		},
+	});
+}
+
+function getFile(channel_id) {
+	$.ajax({
+		url: '/get-file',
+		type: 'GET',
+		data: { channel_id },
+		dataType: 'json',
+		success: function (data) {
+			$('.list-group').empty();
+			if (data.success) {
+				data.results.map((val) => {
+					$('.list-group').append(`
+						<li class="list-group-item">
+							<a href="${val.file_path}" class="file-link">${val.file_path}</a>
+							<span class="message-time">${formatDate(val.created_at)}</span>
+						</li>
+					`);
+				});
 			}
 		},
 	});
@@ -277,7 +601,10 @@ function addNewFriend(id) {
 		data: { id },
 		dataType: 'json',
 		success: function (data) {
-			console.log(data);
+			if (data.success) {
+				$('.dismiss').click();
+				loadChannels();
+			}
 		},
 	});
 }
@@ -376,4 +703,27 @@ function scrollToBottom() {
 	var chatBox = $('.chat-body');
 	var scrollHeight = chatBox.prop('scrollHeight');
 	chatBox.scrollTop(scrollHeight);
+}
+
+function formatTimeElapsed(timestamp) {
+	if (timestamp == '') {
+		return '';
+	}
+	const now = new Date();
+	const sentTime = new Date(timestamp);
+	const timeDifferenceInHours = 7;
+	sentTime.setHours(sentTime.getHours() + timeDifferenceInHours);
+	const elapsed = now - sentTime; // Thời gian đã trôi qua tính bằng mili giây
+
+	const seconds = Math.floor(elapsed / 1000);
+	const minutes = Math.floor(seconds / 60);
+	const hours = Math.floor(minutes / 60);
+
+	if (seconds < 60) {
+		return `${seconds}s`;
+	} else if (minutes < 60) {
+		return `${minutes}m`;
+	} else {
+		return `${hours}h`;
+	}
 }

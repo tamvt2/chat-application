@@ -38,7 +38,7 @@ class User_channel {
 
 	getById(userId, callback) {
 		con.query(
-			'SELECT * FROM user_channels INNER JOIN channels ON channels.id = user_channels.channel_id WHERE user_channels.user_id = ?',
+			'SELECT channels.name, channel_id FROM user_channels INNER JOIN channels ON channels.id = user_channels.channel_id WHERE user_channels.user_id = ?',
 			[userId],
 			callback
 		);
@@ -46,7 +46,7 @@ class User_channel {
 
 	getByChannelId(channelId, userId, callback) {
 		con.query(
-			'SELECT users.id, users.name, users.status, users.image_url FROM user_channels INNER JOIN users ON users.id = user_channels.user_id WHERE user_channels.channel_id = ? AND users.id != ?',
+			'SELECT users.id, users.name, users.status, users.image_url, user_channels.channel_id FROM user_channels INNER JOIN users ON users.id = user_channels.user_id WHERE user_channels.channel_id = ? AND users.id != ?',
 			[channelId, userId],
 			callback
 		);
